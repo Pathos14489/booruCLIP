@@ -54,5 +54,6 @@ print("Training on Derpibooru...")
 for i in trange(last_page+1, pages):
     get_page(i)
     
+
 # This is extremely slow so as to not hammer the API, but it could be sped up a lot by pre-downloading the images, creating the embeds in batches,
 # using multiple threads, by editing your clip-server tensor-flow.yaml to use multiple instances of the CLIP server, etc. Proof of concept really.
