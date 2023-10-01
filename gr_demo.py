@@ -6,7 +6,7 @@ import json
 import os
 
 booru = BooruCLIP("./derpibooru/",blip2=False, llama=False)
-
+server_name = "ip of server" # example: "192.168.1.109"
 
 if not os.path.exists("./shared"):
     os.mkdir("./shared")
@@ -164,5 +164,5 @@ with gr.Blocks() as demo:
     llama_button.click(caption_llama, inputs=[llama_image, llama_booruclip_top_k, llama_booruclip_top_p, llama_llama_top_k, llama_llama_top_p, llama_llama_temp, llama_llama_max_length, llama_tags_text], outputs=[llama_text])
 demo.queue().launch(
     share=True,
-    server_name="192.168.1.109"
+    server_name=server_name
 )
