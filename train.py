@@ -2,8 +2,8 @@ from booruClip import BooruCLIP
 from PIL import Image
 import requests
 from tqdm import tqdm, trange
-import time
 from io import BytesIO
+import os
 
 booru = BooruCLIP("./derpibooru/")
     
@@ -15,6 +15,10 @@ per_page = 50
 pages = 0
 last_page = 1
 # get last page
+if not os.path.exists("lastPage"):
+    with open("lastPage", "w") as f:
+        f.write("1")
+        f.close()
 with open("lastPage", "r") as f:
     last_page = int(f.read())
     f.close()
