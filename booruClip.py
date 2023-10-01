@@ -7,6 +7,7 @@ import time
 from tqdm import tqdm
 from PIL import Image, ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
+Image.MAX_IMAGE_PIXELS = None
 
 from clip_client import Client
 from docarray import Document, DocumentArray
