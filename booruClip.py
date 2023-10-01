@@ -13,7 +13,7 @@ from docarray import Document, DocumentArray
 
 
 class BooruCLIP:
-    def __init__(self,base_directory,size = 768,blip2 = False,clip = None,llama = False):
+    def __init__(self,base_directory,size = 768,clip = None):
         self.base_directory = base_directory
         self.embeddingCache = {}
         self.imagesEmbeddings = DocumentArray()
