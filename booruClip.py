@@ -7,11 +7,9 @@ import time
 from tqdm import tqdm
 from PIL import Image, ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
-from blipLocalClient import BLIP2Client
 
 from clip_client import Client
 from docarray import Document, DocumentArray
-from llamacppClient import LLaMAClient # text generation
 
 
 class BooruCLIP:
@@ -22,13 +20,9 @@ class BooruCLIP:
         self.embeddingsDir = base_directory + "embeddingCache/"
         self.convertedImagesDir = base_directory + "converted_images/"
         if size is None:
-            size = 768
+            size = 768 # Make sure this matches the recommended image size of the CLIP model you're using
         self.size = size
-        if llama:
-            self.llama = LLaMAClient()
-        
-        if blip2:
-            self.blip2 = BLIP2Client()
+
             
         if not os.path.exists(base_directory):
             os.mkdir(base_directory)
