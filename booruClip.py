@@ -114,18 +114,20 @@ class BooruCLIP:
             for file in tqdm(embedding_files):
                 file_id = file.split(".")[0]
                 if file_id not in pre_existing:
-                    with open(self.embeddingsDir + file) as f:
-                        try:
-                            data = json.load(f)
-                            if type(data) == str:
-                                data = json.loads(data)
-                        except Exception as e:
-                            print("Error loading embedding:"+file)
-                            print(e)
-                            pass
-                        self.embeddingCache[data["tags"]["ID"]] = data
-                        self.imagesEmbeddings.append(Document.from_json(json.dumps(data)))
-    
+                    # if file exists on disk but not in memory, load it
+                    if os.path.exists(self.embeddingsDir + file):
+                        with open(self.embeddingsDir + file) as f:
+                            try:
+                                data = json.load(f)
+                                if type(data) == str:
+                                    data = json.loads(data)
+                            except Exception as e:
+                                print("Error loading embedding:"+file)
+                                print(e)
+                                pass
+                            self.embeddingCache[data["tags"]["ID"]] = data
+                            self.imagesEmbeddings.append(Document.from_json(json.dumps(data)))
+        
     def cachedEmbeddings(self):
         # return values from embeddingCache as a list
         return list(self.embeddingCache.values())
@@ -321,6 +323,7 @@ class BooruCLIP:
         top_ten.pop(0)
         # print(len(top_ten))
         return {"id":sid, "images": top_ten, "predicted_tags": predicted_tags, "amount": top_k}
+    
     def new_image(self, image, tags, id): 
         if id is None:
             id = uuid.uuid4()
@@ -328,8 +331,41 @@ class BooruCLIP:
         if id in self.embeddingCache:
             print("Image with that ID already exists")
             return
-        with torch.no_grad():
-            # print("New Image - Stage 1")
+        # print("New Image - Stage 1")
+        try:
+            if type(image) == str:
+                image = Image.open(image).resize((self.size, self.size), Image.Resampling.LANCZOS).convert("RGB") # was 336, 336 in the original prototype, might affect results
+            else:
+                image = image.resize((self.size, self.size), Image.Resampling.LANCZOS).convert("RGB")
+        except Exception as e:
+            print("Error loading image:"+id)
+            print(e)
+            return
+        image.save(self.convertedImagesDir + id + ".jpg")
+        d = Document(uri=self.convertedImagesDir + id + ".jpg").load_uri_to_image_tensor()
+        embed = self.clip.encode([d])
+        # os.remove(convertedImagesDir + id + ".jpg") # turns out this is a bad idea, keep the images around for debugging and incase you need to regenerate the embeddings
+        doc = embed[0]
+        doc.tags["ID"] = id
+        doc.tags["TAGS"] = tags
+        export_json = doc.to_json()
+        export_json = json.loads(export_json)
+        del export_json["blob"]
+        export_json = json.dumps(export_json)
+        with open(self.embeddingsDir+id+".json", "w", encoding="utf-8") as f:
+            json.dump(export_json, f)
+        self.imagesEmbeddings.append(doc)
+        return {"id":id}
+
+    def new_images(self, batch): # Batched version of new_image
+        documents = []
+        for image, tags, id in tqdm(batch):
+            if id is None:
+                id = uuid.uuid4()
+            id = str(id)
+            if id in self.embeddingCache:
+                print("Image with that ID already exists")
+                return
             try:
                 if type(image) == str:
                     image = Image.open(image).resize((self.size, self.size), Image.Resampling.LANCZOS).convert("RGB") # was 336, 336 in the original prototype, might affect results
@@ -340,12 +376,15 @@ class BooruCLIP:
                 print(e)
                 return
             image.save(self.convertedImagesDir + id + ".jpg")
-            d = Document(uri=self.convertedImagesDir + id + ".jpg").load_uri_to_image_tensor()
-            embed = self.clip.encode([d])
-            # os.remove(convertedImagesDir + id + ".jpg") # turns out this is a bad idea, keep the images around for debugging and incase you need to regenerate the embeddings
-            doc = embed[0]
+            doc = Document(uri=self.convertedImagesDir + id + ".jpg").load_uri_to_image_tensor()
             doc.tags["ID"] = id
             doc.tags["TAGS"] = tags
+            documents.append(doc)
+        embed = self.clip.encode(documents)
+        for i in range(len(embed)):
+            doc = embed[i]
+            id = doc.tags["ID"]
+            tags = doc.tags["TAGS"]
             export_json = doc.to_json()
             export_json = json.loads(export_json)
             del export_json["blob"]
@@ -353,4 +392,4 @@ class BooruCLIP:
             with open(self.embeddingsDir+id+".json", "w", encoding="utf-8") as f:
                 json.dump(export_json, f)
             self.imagesEmbeddings.append(doc)
-            return {"id":id}
+        return {"ids":ids}
