@@ -381,9 +381,11 @@ class BooruCLIP:
             doc.tags["TAGS"] = tags
             documents.append(doc)
         embed = self.clip.encode(documents)
-        for i in range(len(embed)):
+        ids = []
+        for i in range(len(embed)): # Save the embeddings to disk and add them to the cache
             doc = embed[i]
             id = doc.tags["ID"]
+            ids.append(id)
             tags = doc.tags["TAGS"]
             export_json = doc.to_json()
             export_json = json.loads(export_json)
